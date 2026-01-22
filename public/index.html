@@ -1,0 +1,513 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description"
+    content="System Health Monitoring Dashboard - Real-time service monitoring. Built by Your Name.">
+  <title>System Health Monitor | Your Name</title>
+  <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+  <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    body {
+      background-color: #030712;
+      margin: 0;
+    }
+
+    #loading {
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: #030712;
+      color: #9ca3af;
+    }
+
+    .spinner {
+      width: 40px;
+      height: 40px;
+      border: 3px solid #1f2937;
+      border-top-color: #3b82f6;
+      border-radius: 50%;
+      animation: spin 1s linear infinite;
+      margin: 0 auto 1rem;
+    }
+
+    @keyframes spin {
+      to {
+        transform: rotate(360deg);
+      }
+    }
+
+    @keyframes pulse {
+
+      0%,
+      100% {
+        opacity: 1;
+      }
+
+      50% {
+        opacity: 0.5;
+      }
+    }
+
+    .pulse {
+      animation: pulse 2s infinite;
+    }
+  </style>
+</head>
+
+<body>
+  <div id="root">
+    <div id="loading">
+      <div style="text-align:center">
+        <div class="spinner"></div>
+        <p>Loading Dashboard...</p>
+      </div>
+    </div>
+  </div>
+
+  <script type="text/babel">
+    const { useState, useEffect, useRef } = React;
+
+    // SVG Icon Components
+    const Icon = ({ d, className = "w-5 h-5" }) => (
+      <svg className={className} fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24">
+        <path d={d} />
+      </svg>
+    );
+
+    const Activity = ({ className }) => <Icon className={className} d="M22 12h-4l-3 9L9 3l-3 9H2" />;
+    const CheckCircle = ({ className }) => (
+      <svg className={className} fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+        <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" /><path d="M22 4L12 14.01l-3-3" />
+      </svg>
+    );
+    const AlertCircle = ({ className }) => (
+      <svg className={className} fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+        <circle cx="12" cy="12" r="10" /><line x1="12" y1="8" x2="12" y2="12" /><line x1="12" y1="16" x2="12.01" y2="16" />
+      </svg>
+    );
+    const XCircle = ({ className }) => (
+      <svg className={className} fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+        <circle cx="12" cy="12" r="10" /><line x1="15" y1="9" x2="9" y2="15" /><line x1="9" y1="9" x2="15" y2="15" />
+      </svg>
+    );
+    const Server = ({ className }) => (
+      <svg className={className} fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+        <rect x="2" y="2" width="20" height="8" rx="2" /><rect x="2" y="14" width="20" height="8" rx="2" />
+        <line x1="6" y1="6" x2="6.01" y2="6" /><line x1="6" y1="18" x2="6.01" y2="18" />
+      </svg>
+    );
+    const Database = ({ className }) => (
+      <svg className={className} fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+        <ellipse cx="12" cy="5" rx="9" ry="3" /><path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3" /><path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5" />
+      </svg>
+    );
+    const Globe = ({ className }) => (
+      <svg className={className} fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+        <circle cx="12" cy="12" r="10" /><line x1="2" y1="12" x2="22" y2="12" />
+        <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z" />
+      </svg>
+    );
+    const TrendingUp = ({ className }) => (
+      <svg className={className} fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+        <polyline points="23 6 13.5 15.5 8.5 10.5 1 18" /><polyline points="17 6 23 6 23 12" />
+      </svg>
+    );
+    const Wifi = ({ className }) => (
+      <svg className={className} fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+        <path d="M5 12.55a11 11 0 0 1 14.08 0" /><path d="M1.42 9a16 16 0 0 1 21.16 0" />
+        <path d="M8.53 16.11a6 6 0 0 1 6.95 0" /><line x1="12" y1="20" x2="12.01" y2="20" />
+      </svg>
+    );
+    const WifiOff = ({ className }) => (
+      <svg className={className} fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+        <line x1="1" y1="1" x2="23" y2="23" /><path d="M16.72 11.06A10.94 10.94 0 0 1 19 12.55" />
+        <path d="M5 12.55a10.94 10.94 0 0 1 5.17-2.39" /><path d="M10.71 5.05A16 16 0 0 1 22.58 9" />
+        <path d="M1.42 9a15.91 15.91 0 0 1 4.7-2.88" /><path d="M8.53 16.11a6 6 0 0 1 6.95 0" />
+        <line x1="12" y1="20" x2="12.01" y2="20" />
+      </svg>
+    );
+    const Info = ({ className }) => (
+      <svg className={className} fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+        <circle cx="12" cy="12" r="10" /><line x1="12" y1="16" x2="12" y2="12" /><line x1="12" y1="8" x2="12.01" y2="8" />
+      </svg>
+    );
+
+    const HealthMonitorDashboard = () => {
+      const [services, setServices] = useState([]);
+      const [systemMetrics, setSystemMetrics] = useState({ cpu: 0, memory: 0, disk: 0, network: 0 });
+      const [logs, setLogs] = useState([]);
+      const [alerts, setAlerts] = useState([]);
+      const [connected, setConnected] = useState(false);
+      const [selectedService, setSelectedService] = useState(null);
+      const [hoveredService, setHoveredService] = useState(null);
+      const [uptimeHistory, setUptimeHistory] = useState({});
+      const wsRef = useRef(null);
+      const reconnectRef = useRef(null);
+
+      useEffect(() => {
+        const connectWS = () => {
+          const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+          // Clean path matching: remove trailing slash if present and not root
+          let path = window.location.pathname;
+          if (path.endsWith('/') && path.length > 1) path = path.slice(0, -1);
+          if (path === '/') path = '';
+
+          const wsUrl = `${protocol}//${window.location.host}${path}/ws`;
+
+          try {
+            wsRef.current = new WebSocket(wsUrl);
+
+            wsRef.current.onopen = () => {
+              console.log('WebSocket connected');
+              setConnected(true);
+            };
+
+            wsRef.current.onmessage = (event) => {
+              const msg = JSON.parse(event.data);
+
+              if (msg.type === 'services') {
+                setServices(msg.data.map(s => ({
+                  ...s,
+                  lastCheck: new Date(s.lastCheck)
+                })));
+                // Update history
+                setUptimeHistory(prev => {
+                  const updated = { ...prev };
+                  msg.data.forEach(svc => {
+                    if (!updated[svc.id]) updated[svc.id] = [];
+                    updated[svc.id] = [...updated[svc.id].slice(-23), {
+                      time: new Date(),
+                      uptime: svc.uptime,
+                      responseTime: svc.responseTime
+                    }];
+                  });
+                  return updated;
+                });
+              } else if (msg.type === 'metrics') {
+                setSystemMetrics(msg.data);
+              } else if (msg.type === 'log') {
+                setLogs(prev => [{ ...msg.data, timestamp: new Date(msg.data.timestamp) }, ...prev.slice(0, 49)]);
+              } else if (msg.type === 'alert') {
+                setAlerts(prev => [{ ...msg.data, timestamp: new Date(msg.data.timestamp) }, ...prev]);
+              }
+            };
+
+            wsRef.current.onclose = () => {
+              console.log('WebSocket disconnected, retrying...');
+              setConnected(false);
+              reconnectRef.current = setTimeout(connectWS, 3000);
+            };
+
+            wsRef.current.onerror = () => setConnected(false);
+          } catch (e) {
+            console.error('WebSocket error:', e);
+            setConnected(false);
+          }
+        };
+
+        // Initial data fetch
+        fetch('/api/services').then(r => r.json()).then(data => {
+          setServices(data.map(s => ({ ...s, lastCheck: new Date(s.lastCheck) })));
+        }).catch(console.error);
+
+        fetch('/api/logs?limit=20').then(r => r.json()).then(data => {
+          setLogs(data.map(l => ({ ...l, timestamp: new Date(l.timestamp) })));
+        }).catch(console.error);
+
+        fetch('/api/alerts').then(r => r.json()).then(data => {
+          setAlerts(data.map(a => ({ ...a, timestamp: new Date(a.timestamp) })));
+        }).catch(console.error);
+
+        connectWS();
+
+        // Polling fallback
+        const pollInterval = setInterval(() => {
+          if (!connected) {
+            fetch('/api/services').then(r => r.json()).then(data => {
+              setServices(data.map(s => ({ ...s, lastCheck: new Date(s.lastCheck) })));
+            }).catch(() => { });
+          }
+        }, 10000);
+
+        return () => {
+          if (wsRef.current) wsRef.current.close();
+          if (reconnectRef.current) clearTimeout(reconnectRef.current);
+          clearInterval(pollInterval);
+        };
+      }, []);
+
+      const getStatusColor = (status) => {
+        if (status === 'healthy') return 'text-emerald-400';
+        if (status === 'warning') return 'text-amber-400';
+        if (status === 'down') return 'text-red-400';
+        return 'text-gray-400';
+      };
+
+      const getStatusBg = (status) => {
+        if (status === 'healthy') return 'bg-emerald-900/30 border-emerald-700';
+        if (status === 'warning') return 'bg-amber-900/30 border-amber-700';
+        if (status === 'down') return 'bg-red-900/30 border-red-700';
+        return 'bg-gray-900/30 border-gray-700';
+      };
+
+      const getStatusIcon = (status) => {
+        if (status === 'healthy') return <CheckCircle className="w-5 h-5" />;
+        if (status === 'warning') return <AlertCircle className="w-5 h-5" />;
+        if (status === 'down') return <XCircle className="w-5 h-5" />;
+        return <Activity className="w-5 h-5" />;
+      };
+
+      const getLevelColor = (level) => {
+        if (level === 'error') return 'text-red-300 bg-red-950/50';
+        if (level === 'warning') return 'text-amber-300 bg-amber-950/50';
+        return 'text-blue-300 bg-blue-950/50';
+      };
+
+      const healthyCount = services.filter(s => s.status === 'healthy').length;
+      const overallHealth = services.length > 0 ? (healthyCount / services.length) * 100 : 0;
+      const avgResponse = services.length > 0 ? Math.floor(services.reduce((a, s) => a + s.responseTime, 0) / services.length) : 0;
+
+      return (
+        <div className="min-h-screen bg-gray-950 text-gray-100 p-4">
+          <div className="max-w-7xl mx-auto">
+            {/* Header */}
+            <div className="mb-8 flex justify-between items-start">
+              <div>
+                <h1 className="text-3xl font-bold text-white mb-2">System Health Monitor</h1>
+                <p className="text-gray-400">Real-time monitoring and alerting dashboard</p>
+              </div>
+              <div className={`flex items-center gap-2 px-3 py-2 rounded-lg ${connected ? 'bg-emerald-900/30 text-emerald-400' : 'bg-red-900/30 text-red-400'}`}>
+                {connected ? <Wifi className="w-4 h-4" /> : <WifiOff className="w-4 h-4" />}
+                <span className="text-sm font-medium">{connected ? 'Live' : 'Reconnecting...'}</span>
+                {connected && <span className="w-2 h-2 bg-emerald-400 rounded-full pulse"></span>}
+              </div>
+            </div>
+
+            {/* Stats Grid */}
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+              <div className="bg-gray-900 border border-gray-800 rounded-lg shadow-lg p-6">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm text-gray-400 mb-1">Overall Health</p>
+                    <p className="text-3xl font-bold text-white">{overallHealth.toFixed(1)}%</p>
+                  </div>
+                  <Activity className="w-10 h-10 text-blue-400" />
+                </div>
+              </div>
+              <div className="bg-gray-900 border border-gray-800 rounded-lg shadow-lg p-6">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm text-gray-400 mb-1">Services Up</p>
+                    <p className="text-3xl font-bold text-emerald-400">{healthyCount}/{services.length}</p>
+                  </div>
+                  <CheckCircle className="w-10 h-10 text-emerald-400" />
+                </div>
+              </div>
+              <div className="bg-gray-900 border border-gray-800 rounded-lg shadow-lg p-6">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm text-gray-400 mb-1">Active Alerts</p>
+                    <p className="text-3xl font-bold text-orange-400">{alerts.length}</p>
+                  </div>
+                  <AlertCircle className="w-10 h-10 text-orange-400" />
+                </div>
+              </div>
+              <div className="bg-gray-900 border border-gray-800 rounded-lg shadow-lg p-6">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm text-gray-400 mb-1">Avg Response</p>
+                    <p className="text-3xl font-bold text-white">{avgResponse}ms</p>
+                  </div>
+                  <TrendingUp className="w-10 h-10 text-purple-400" />
+                </div>
+              </div>
+            </div>
+
+            {/* Alerts */}
+            {alerts.length > 0 && (
+              <div className="bg-gray-900 border border-gray-800 rounded-lg shadow-lg mb-6 p-6">
+                <h2 className="text-xl font-bold text-white mb-4 flex items-center">
+                  <AlertCircle className="w-5 h-5 mr-2 text-orange-400" />
+                  Active Alerts
+                </h2>
+                <div className="space-y-3">
+                  {alerts.slice(0, 5).map(alert => (
+                    <div key={alert.id} className={`border-l-4 p-4 ${alert.severity === 'critical' ? 'border-red-500 bg-red-950/30' : 'border-amber-500 bg-amber-950/30'}`}>
+                      <div className="flex justify-between items-start">
+                        <div>
+                          <p className={`font-semibold ${alert.severity === 'critical' ? 'text-red-300' : 'text-amber-300'}`}>{alert.service}</p>
+                          <p className={`text-sm ${alert.severity === 'critical' ? 'text-red-400' : 'text-amber-400'}`}>{alert.message}</p>
+                        </div>
+                        <span className="text-xs text-gray-500">{alert.timestamp?.toLocaleTimeString?.() || 'Just now'}</span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Services Grid */}
+            <div className="bg-gray-900 border border-gray-800 rounded-lg shadow-lg mb-6 p-6">
+              <h2 className="text-xl font-bold text-white mb-4 flex items-center">
+                <Server className="w-5 h-5 mr-2 text-blue-400" />
+                Service Status
+                <span className="ml-2 text-sm font-normal text-gray-500">(click for details)</span>
+              </h2>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                {services.map(service => (
+                  <div
+                    key={service.id}
+                    className={`border-2 rounded-lg p-4 cursor-pointer transition-all hover:scale-[1.02] ${getStatusBg(service.status)} ${selectedService === service.id ? 'ring-2 ring-blue-500' : ''}`}
+                    onClick={() => setSelectedService(selectedService === service.id ? null : service.id)}
+                  >
+                    <div className="flex items-center justify-between mb-3">
+                      <h3 className="font-semibold text-white">{service.name}</h3>
+                      <div className="flex items-center gap-2">
+                        <div
+                          className="relative"
+                          onMouseEnter={() => setHoveredService(service.id)}
+                          onMouseLeave={() => setHoveredService(null)}
+                        >
+                          <Info className="w-4 h-4 text-gray-400 hover:text-gray-300 cursor-help" />
+                          {hoveredService === service.id && (
+                            <div className="absolute z-50 right-0 top-6 w-64 bg-gray-800 border border-gray-700 rounded-lg shadow-xl p-3">
+                              <div className="space-y-2 text-sm">
+                                <div>
+                                  <p className="text-gray-400 text-xs uppercase">Endpoint</p>
+                                  <p className="text-emerald-400 font-mono text-xs break-all">{service.url || 'internal'}</p>
+                                </div>
+                                <div>
+                                  <p className="text-gray-400 text-xs uppercase">Type</p>
+                                  <p className="text-blue-400">{service.type}</p>
+                                </div>
+                              </div>
+                            </div>
+                          )}
+                        </div>
+                        <span className={getStatusColor(service.status)}>{getStatusIcon(service.status)}</span>
+                      </div>
+                    </div>
+                    <div className="space-y-2 text-sm">
+                      <div className="flex justify-between">
+                        <span className="text-gray-400">Uptime:</span>
+                        <span className="font-semibold text-gray-200">{service.uptime?.toFixed(1) || '99.9'}%</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-gray-400">Response:</span>
+                        <span className="font-semibold text-gray-200">{service.responseTime}ms</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-gray-400">Last Check:</span>
+                        <span className="font-semibold text-gray-200">{service.lastCheck?.toLocaleTimeString?.() || 'N/A'}</span>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* Chart for selected service */}
+            {selectedService && uptimeHistory[selectedService] && (
+              <div className="bg-gray-900 border border-gray-800 rounded-lg shadow-lg mb-6 p-6">
+                <div className="flex items-center justify-between mb-4">
+                  <h2 className="text-xl font-bold text-white flex items-center">
+                    <TrendingUp className="w-5 h-5 mr-2 text-purple-400" />
+                    {services.find(s => s.id === selectedService)?.name} - Response Time History
+                  </h2>
+                  <button onClick={() => setSelectedService(null)} className="text-gray-400 hover:text-white text-sm">Close</button>
+                </div>
+                <div className="h-48 flex items-end justify-between gap-1">
+                  {uptimeHistory[selectedService].map((point, idx) => {
+                    const maxRT = 300;
+                    const heightPct = Math.min((point.responseTime / maxRT) * 100, 100);
+                    const color = point.responseTime > 200 ? 'bg-red-500' : point.responseTime > 100 ? 'bg-amber-500' : 'bg-emerald-500';
+                    return (
+                      <div key={idx} className="flex-1 flex flex-col items-center group">
+                        <div className="relative w-full">
+                          <div className={`w-full ${color} hover:opacity-80 transition-all rounded-t`} style={{ height: `${(heightPct / 100) * 180}px` }}>
+                            <div className="opacity-0 group-hover:opacity-100 absolute -top-8 left-1/2 transform -translate-x-1/2 bg-gray-800 text-white text-xs py-1 px-2 rounded whitespace-nowrap z-10">
+                              {point.responseTime.toFixed(0)}ms
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+                <div className="flex justify-between mt-2 text-xs text-gray-500">
+                  <span>Oldest</span>
+                  <span>Now</span>
+                </div>
+              </div>
+            )}
+
+            {/* System Metrics */}
+            <div className="bg-gray-900 border border-gray-800 rounded-lg shadow-lg mb-6 p-6">
+              <h2 className="text-xl font-bold text-white mb-4 flex items-center">
+                <Database className="w-5 h-5 mr-2 text-purple-400" />
+                System Metrics
+              </h2>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                {Object.entries(systemMetrics).map(([key, value]) => (
+                  <div key={key} className="border border-gray-800 rounded-lg p-4 bg-gray-950/50">
+                    <p className="text-sm text-gray-400 mb-2 capitalize">{key}</p>
+                    <div className="flex items-center justify-between mb-2">
+                      <span className="text-2xl font-bold text-white">{value}{key === 'network' ? 'MB/s' : '%'}</span>
+                    </div>
+                    <div className="w-full bg-gray-800 rounded-full h-2">
+                      <div
+                        className={`h-2 rounded-full transition-all ${value > 80 ? 'bg-red-500' : value > 60 ? 'bg-amber-500' : 'bg-emerald-500'}`}
+                        style={{ width: `${key === 'network' ? Math.min((value / 500) * 100, 100) : value}%` }}
+                      />
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* Logs */}
+            <div className="bg-gray-900 border border-gray-800 rounded-lg shadow-lg p-6">
+              <h2 className="text-xl font-bold text-white mb-4 flex items-center">
+                <Globe className="w-5 h-5 mr-2 text-emerald-400" />
+                Recent Logs
+              </h2>
+              <div className="space-y-2 max-h-80 overflow-y-auto">
+                {logs.length === 0 && <p className="text-gray-500 text-center py-4">No logs yet</p>}
+                {logs.map((log, idx) => (
+                  <div key={log.id || idx} className="flex items-start space-x-3 p-3 hover:bg-gray-800/50 rounded border-b border-gray-800">
+                    <span className={`px-2 py-1 rounded text-xs font-semibold uppercase ${getLevelColor(log.level)}`}>{log.level}</span>
+                    <div className="flex-1">
+                      <div className="flex justify-between items-start">
+                        <div>
+                          <p className="font-semibold text-sm text-white">{log.service}</p>
+                          <p className="text-sm text-gray-400">{log.message}</p>
+                        </div>
+                        <span className="text-xs text-gray-500 whitespace-nowrap ml-4">{log.timestamp?.toLocaleTimeString?.() || 'Just now'}</span>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* Footer */}
+            <div className="mt-8 text-center text-sm text-gray-500">
+              <p>Built by <a href="https://yourdomain.com" className="text-blue-400 hover:underline">Your Name</a> • Demonstrating real-time monitoring & DevOps capabilities</p>
+            </div>
+          </div>
+        </div>
+      );
+    };
+
+    const root = ReactDOM.createRoot(document.getElementById('root'));
+    root.render(<HealthMonitorDashboard />);
+  </script>
+</body>
+
+</html>
