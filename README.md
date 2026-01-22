@@ -3,7 +3,7 @@
 A real-time system health monitoring dashboard built with Node.js and React. This application provides live metrics for server performance, service availability, and system alerts using WebSockets for instant updates.
 
 ## 🚀 Live Demo
-**[monitor.yourdomain.com](https://monitor.yourdomain.com)**
+**[monitor.yourdomain.com](https://monitor.matthewferguson.pro)**
 
 ## ✨ Features
 *   **Real-time Monitoring**: Live updates for CPU, Memory, Disk, and Network usage.
@@ -39,3 +39,4 @@ See `DEPLOYMENT.md` for detailed instructions on setting this up on a VPS or Nam
 
 ## 📝 License
 MIT
+
